@@ -167,24 +167,25 @@
                     </div>
                 </header>
 
-                <div class="bg-[#1C1C1E] border-b border-white/10 px-4 py-2 flex items-center gap-4 shrink-0 shadow-inner">
+                <!-- 勾配バー: 背景をシルバー (#C7C7CC) に変更 -->
+                <div class="bg-[#C7C7CC] border-b border-black/10 px-4 py-2 flex items-center gap-4 shrink-0 shadow-inner">
                     <div class="flex items-center shrink-0">
-                        <svg width="50" height="30" viewBox="0 0 60 40" class="text-system-indigo">
+                        <svg width="50" height="30" viewBox="0 0 60 40" class="text-black">
                             <path d="M10 25 L50 25 L50 5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M10 25 L50 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.3"/>
                             <text x="30" y="38" font-size="14" text-anchor="middle" font-weight="900" fill="currentColor">100</text>
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <input type="number" id="slopeInput" placeholder="勾配(mm)" class="w-full h-10 rounded-xl text-base px-4 font-bold text-white bg-[#2C2C2E] border-none focus:ring-2 focus:ring-indigo-500 tabular-nums shadow-sm" onclick="this.select()">
+                        <input type="number" id="slopeInput" placeholder="勾配(mm)" class="w-full h-10 rounded-xl text-base px-4 font-bold text-black bg-white border-none focus:ring-2 focus:ring-indigo-500 tabular-nums shadow-sm" onclick="this.select()">
                     </div>
-                    <div class="flex items-center justify-center min-w-[70px] bg-[#2C2C2E] h-10 rounded-xl border border-white/10 px-2">
-                        <span id="slopeResult" class="text-base font-black text-system-indigo tabular-nums">0.0°</span>
+                    <div class="flex items-center justify-center min-w-[70px] bg-white h-10 rounded-xl border border-black/5 shadow-sm px-2">
+                        <span id="slopeResult" class="text-base font-black text-black tabular-nums">0.0°</span>
                     </div>
                 </div>
 
-                <!-- 実行・保存ボタン: 背景をシルバー (#C7C7CC) に変更 -->
-                <div class="bg-[#C7C7CC] border-b border-black/10 px-4 py-2 flex gap-3 justify-center shrink-0 z-40 relative">
+                <!-- 実行・保存ボタン: 背景を #1C1C1E に戻し、縦幅をスリムに -->
+                <div class="bg-[#1C1C1E] border-b border-white/10 px-4 py-2 flex gap-3 justify-center shrink-0 z-40 relative">
                     <button type="button" id="executeBtn" class="flex-[3] bg-system-indigo text-white font-black py-1.5 rounded-2xl shadow-lg btn-tap flex items-center justify-center gap-3 text-lg tracking-wider transition-colors active:bg-indigo-700">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg>
                         計算・再作図
