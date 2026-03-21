@@ -6,7 +6,7 @@
     <title>面積計算アプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* iPhoneダークモードのデザイン：漆黒と深みのあるグレー */
+        /* iPhoneダークモードのデザイン */
         body { 
             background-color: #000000; 
             color: #FFFFFF;
@@ -65,11 +65,6 @@
             background: #2C2C2E;
             color: #FFFFFF;
             border: 1px solid #3A3A3C;
-        }
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
         }
         
         #numericInput { 
@@ -164,14 +159,12 @@
     <div id="toast" class="fixed top-40 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-4 rounded-full text-base font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-[60] shadow-lg whitespace-nowrap"></div>
 
     <div class="app-container">
-        <!-- Tab Bar -->
         <div class="tab-bar pt-[calc(env(safe-area-inset-top)+2px)]">
             <div id="tabDraw" class="tab-item active" onclick="switchTab('draw')">作図</div>
             <div id="tabHistory" class="tab-item" onclick="switchTab('history')">保存済み</div>
         </div>
 
         <div class="view-content">
-            <!-- VIEW: 作図画面 -->
             <div id="drawView" class="tab-view active">
                 <header class="border-b border-white/10 px-2 py-3 flex flex-col shrink-0">
                     <div class="flex justify-center w-full mb-3">
@@ -227,11 +220,8 @@
                 </div>
             </div>
 
-            <!-- VIEW: 保存済み画面 -->
             <div id="historyView" class="tab-view scrollbar-hide">
-                <div id="historyList" class="flex flex-col">
-                    <div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>
-                </div>
+                <div id="historyList" class="flex flex-col"></div>
             </div>
         </div>
     </div>
@@ -279,8 +269,8 @@
     </div>
 
     <script>
-        // --- 基本変数 ---
-        const STORAGE_KEY = 'area_calc_data_v2';
+        // --- 1. 定数・グローバル変数 ---
+        const STORAGE_KEY = 'area_calc_data_v3';
         let canvas, ctx, areaEl, inputModal, numericInput, fitBtn, slopeInput, slopeResult, pressProgress, exportBtn;
         let points = [];        
         let manualLengths = {}; 
@@ -304,20 +294,53 @@
         let globalBaseAngle = 0; 
         let globalIsCW = true;
         let isTouching = false;
-        let savedData = [];
-        try { savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { savedData = []; }
+        let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-        // --- 基本ロジック ---
+        // --- 2. 基本機能関数（定義を先行させる） ---
+
         function persistData() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData)); } catch(e) {} }
         function showToast(msg) { const toast = document.getElementById('toast'); if (!toast) return; toast.innerText = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 2000); }
         function getRawCoords(e) { const rect = canvas.getBoundingClientRect(); const t = (e.touches && e.touches.length > 0) ? e.touches[0] : e; return { x: t.clientX - rect.left, y: t.clientY - rect.top }; }
         function w2s(w) { return { x: w.x * zoom + cameraX, y: w.y * zoom + cameraY }; }
         function s2w(s) { return { x: (s.x - cameraX) / zoom, y: (s.y - cameraY) / zoom }; }
         function distToSegment(p, v, w) { const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2); if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y); let t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2)); return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y))); }
-        function saveState() { const state = { points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW }; actionHistory.push(state); if (actionHistory.length > 50) actionHistory.shift(); }
-        function undo() { if (actionHistory.length === 0) return; const state = actionHistory.pop(); points = state.points; manualLengths = state.manualLengths; fixedAngles = state.fixedAngles; isClosed = state.isClosed; ppx = state.ppx; globalBaseAngle = state.globalBaseAngle; globalIsCW = state.globalIsCW; rebuildGeometry(false); draw(); }
+        
+        function saveState() { 
+            const state = { points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW }; 
+            actionHistory.push(state); if (actionHistory.length > 50) actionHistory.shift(); 
+        }
 
-        // --- 描画ロジック ---
+        function undo() { 
+            if (actionHistory.length === 0) return; 
+            const state = actionHistory.pop(); 
+            points = state.points; manualLengths = state.manualLengths; fixedAngles = state.fixedAngles; isClosed = state.isClosed; ppx = state.ppx; globalBaseAngle = state.globalBaseAngle; globalIsCW = state.globalIsCW; 
+            rebuildGeometry(false); draw(); 
+        }
+
+        function rebuildGeometry(shouldFit = false) {
+            if (points.length < 3 || !isClosed) return;
+            let logical = new Array(points.length); logical[0] = {x: 0, y: 0}; let curAngle = 0;
+            for (let i = 0; i < points.length - 1; i++) {
+                let len = manualLengths[i] !== undefined ? manualLengths[i] : (Math.hypot(points[i+1].x - points[i].x, points[i+1].y - points[i].y) / ppx);
+                if (len < 0.01) len = 0.01; logical[i+1] = { x: logical[i].x + len * Math.cos(curAngle), y: logical[i].y + len * Math.sin(curAngle) };
+                if (i < points.length - 2) { 
+                    if (fixedAngles[i+1] !== undefined) { curAngle += (globalIsCW ? (180 - fixedAngles[i+1]) * Math.PI / 180 : -(180 - fixedAngles[i+1]) * Math.PI / 180); } 
+                    else { const a1 = Math.atan2(points[i+1].y - points[i].y, points[i+1].x - points[i].x), a2 = Math.atan2(points[i+2].y - points[i+1].y, points[i+2].x - points[i+1].x); let turn = a2 - a1; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2; curAngle += turn; } 
+                }
+            }
+            const currentB = Math.atan2(logical[1].y - logical[0].y, logical[1].x - logical[0].x), rot = globalBaseAngle - currentB;
+            for (let i = 0; i < logical.length; i++) { const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx }; }
+            let area = 0; for (let i = 0; i < points.length; i++) { const p1 = points[i], p2 = points[(i + 1) % points.length]; area += p1.x * p2.y - p2.x * p1.y; }
+            areaEl.innerText = Math.abs(area / (2 * ppx * ppx)).toFixed(2);
+            if (shouldFit) {
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
+                const pad = 40; zoom = Math.min((canvas.width - pad*2) / (maxX-minX||1), (canvas.height - pad*2) / (maxY-minY||1));
+                cameraX = canvas.width/2 - ((minX+maxX)/2)*zoom; cameraY = canvas.height/2 - ((minY+maxY)/2)*zoom;
+            }
+        }
+
+        // --- 3. 描画系 ---
         function draw() {
             if (!ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -355,97 +378,49 @@
             let actualDeg = globalIsCW ? (180 - diff * 180 / Math.PI) : (180 + diff * 180 / Math.PI); while(actualDeg <= 0) actualDeg += 360; while(actualDeg > 360) actualDeg -= 360;
             const isFixed = fixedAngles[i] !== undefined, displayDeg = isFixed ? fixedAngles[i] : (Math.round(actualDeg * 10) / 10), label = `${displayDeg}°`;
             ctx.font = 'bold 14px sans-serif'; const tw = ctx.measureText(label).width;
+            let turn = a2 - a1; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2;
             let bisectorAngle = a1 + diff / 2; if (globalIsCW) { if (diff > 0) bisectorAngle += Math.PI; } else { if (diff < 0) bisectorAngle += Math.PI; }
             const dist = 50, tx = curr.x + Math.cos(bisectorAngle) * dist, ty = curr.y + Math.sin(bisectorAngle) * dist;
             ctx.fillStyle = 'rgba(44, 44, 46, 0.9)'; ctx.beginPath(); ctx.roundRect(tx - tw/2 - 6, ty - 12, tw + 12, 24, 6); ctx.fill();
             ctx.fillStyle = isFixed ? '#FF453A' : '#8E8E93'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tx, ty);
         }
 
-        // --- 計算ロジック ---
-        function rebuildGeometry(shouldFit = false) {
-            if (points.length < 3 || !isClosed) return;
-            let logical = new Array(points.length); logical[0] = {x: 0, y: 0}; let curAngle = 0;
-            for (let i = 0; i < points.length - 1; i++) {
-                let len = manualLengths[i] !== undefined ? manualLengths[i] : (Math.hypot(points[i+1].x - points[i].x, points[i+1].y - points[i].y) / ppx);
-                if (len < 0.01) len = 0.01; logical[i+1] = { x: logical[i].x + len * Math.cos(curAngle), y: logical[i].y + len * Math.sin(curAngle) };
-                if (i < points.length - 2) { if (fixedAngles[i+1] !== undefined) { curAngle += (globalIsCW ? (180 - fixedAngles[i+1]) * Math.PI / 180 : -(180 - fixedAngles[i+1]) * Math.PI / 180); } else { const a1 = Math.atan2(points[i+1].y - points[i].y, points[i+1].x - points[i].x), a2 = Math.atan2(points[i+2].y - points[i+1].y, points[i+2].x - points[i+1].x); let turn = a2 - a1; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2; curAngle += turn; } }
-            }
-            const currentB = Math.atan2(logical[1].y - logical[0].y, logical[1].x - logical[0].x), rot = globalBaseAngle - currentB;
-            for (let i = 0; i < logical.length; i++) { const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx }; }
-            let area = 0; for (let i = 0; i < points.length; i++) { const p1 = points[i], p2 = points[(i + 1) % points.length]; area += p1.x * p2.y - p2.x * p1.y; }
-            areaEl.innerText = Math.abs(area / (2 * ppx * ppx)).toFixed(2);
-            if (shouldFit) {
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-                const pad = 40; zoom = Math.min((canvas.width - pad*2) / (maxX-minX||1), (canvas.height - pad*2) / (maxY-minY||1));
-                cameraX = canvas.width/2 - ((minX+maxX)/2)*zoom; cameraY = canvas.height/2 - ((minY+maxY)/2)*zoom;
-            }
-        }
-
-        // --- タッチ管理ロジック ---
+        // --- 4. 操作管理 ---
         function handleStart(e) {
             if (modalCooldown || document.getElementById('historyView').classList.contains('active')) return;
             const raw = getRawCoords(e); lastRawPos = raw; startRawPos = {x: raw.x, y: raw.y}; const pos = s2w(raw); hasMoved = false; longPressTriggered = false;
             if (e.target.id === 'canvas' && e.cancelable) e.preventDefault();
-            
             if (!isClosed) { saveState(); if (points.length >= 3 && Math.hypot(raw.x - w2s(points[0]).x, raw.y - w2s(points[0]).y) < 50) { finalizeDrawing(); return; } points.push(pos); draw(); return; }
 
-            // ★優先判定の統合ロジック
-            let hitType = null;
-            let hitIdx = -1;
-            let minDist = Infinity;
-
-            // 1. 頂点（角）判定を最優先かつ少し広めに
-            points.forEach((p, i) => {
-                const d = Math.hypot(raw.x - w2s(p).x, raw.y - w2s(p).y);
-                if (d < 45 && d < minDist) { minDist = d; hitType = 'vertex'; hitIdx = i; }
-            });
-
-            // 2. 頂点に近くない場合のみ、ラベルや辺を判定
+            let hitType = null, hitIdx = -1, minDist = Infinity;
+            points.forEach((p, i) => { const d = Math.hypot(raw.x - w2s(p).x, raw.y - w2s(p).y); if (d < 45 && d < minDist) { minDist = d; hitType = 'vertex'; hitIdx = i; } });
             if (minDist > 25) { 
-                // 数値ラベル判定
-                for (let i = 0; i < points.length; i++) {
-                    const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]);
-                    const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
-                    const d = Math.hypot(raw.x - midX, raw.y - midY);
-                    if (d < 45 && d < minDist) { minDist = d; hitType = 'label'; hitIdx = i; }
-                }
-                // 線分判定
-                for (let i = 0; i < points.length; i++) {
-                    const d = distToSegment(raw, w2s(points[i]), w2s(points[(i+1)%points.length]));
-                    if (d < 35 && d < minDist) { minDist = d; hitType = 'edge'; hitIdx = i; }
-                }
+                for (let i = 0; i < points.length; i++) { const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]); const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2; const d = Math.hypot(raw.x - midX, raw.y - midY); if (d < 45 && d < minDist) { minDist = d; hitType = 'label'; hitIdx = i; } }
+                for (let i = 0; i < points.length; i++) { const d = distToSegment(raw, w2s(points[i]), w2s(points[(i+1)%points.length])); if (d < 35 && d < minDist) { minDist = d; hitType = 'edge'; hitIdx = i; } }
             }
 
             if (hitType === 'vertex') {
-                draggingIdx = hitIdx; selectedIdx = hitIdx; 
-                pressProgress.style.opacity = '1';
-                let start = Date.now();
-                pressTimer = setInterval(() => {
-                    let elapsed = Date.now() - start;
-                    let progress = Math.min(100, (elapsed / LONG_PRESS_DURATION) * 100);
-                    pressProgress.style.width = progress + '%';
-                    if (elapsed >= LONG_PRESS_DURATION) { clearInterval(pressTimer); pressTimer = null; longPressTriggered = true; }
-                }, 20);
-                draw(); return;
-            } else if (hitType === 'label' || hitType === 'edge') {
-                targetEdgeIdx = hitIdx; return;
-            }
-            
+                draggingIdx = hitIdx; selectedIdx = hitIdx; pressProgress.style.opacity = '1'; 
+                let start = Date.now(); pressTimer = setInterval(() => { let elapsed = Date.now() - start; let progress = Math.min(100, (elapsed / LONG_PRESS_DURATION) * 100); pressProgress.style.width = progress + '%'; if (elapsed >= LONG_PRESS_DURATION) { clearInterval(pressTimer); pressTimer = null; longPressTriggered = true; } }, 20);
+                draw(); return; 
+            } else if (hitType === 'label' || hitType === 'edge') { targetEdgeIdx = hitIdx; return; }
             isPanning = true;
         }
 
         function handleMove(e) {
             const raw = getRawCoords(e); if (e.target.id === 'canvas' && e.cancelable) e.preventDefault();
             if (!isClosed) { draw(); return; }
-            // 遊びを少なく (20px -> 5px)
             if (Math.hypot(raw.x - startRawPos.x, raw.y - startRawPos.y) > 5) { 
-                hasMoved = true; 
-                if (pressTimer) { clearInterval(pressTimer); pressTimer = null; pressProgress.style.opacity = '0'; } 
+                hasMoved = true; if (pressTimer) { clearInterval(pressTimer); pressTimer = null; pressProgress.style.opacity = '0'; } 
             }
             if (isPanning) { if (hasMoved) { cameraX += raw.x - lastRawPos.x; cameraY += raw.y - lastRawPos.y; lastRawPos = raw; draw(); } return; }
             if (draggingIdx === null) return;
-            if (hasMoved) { points[draggingIdx] = s2w(raw); rebuildGeometry(false); lastRawPos = raw; draw(); }
+            if (hasMoved) { 
+                // ドラッグ開始時に付近の固定数値を解除
+                delete manualLengths[draggingIdx]; delete manualLengths[(draggingIdx - 1 + points.length) % points.length];
+                delete fixedAngles[draggingIdx]; delete fixedAngles[(draggingIdx + 1) % points.length]; delete fixedAngles[(draggingIdx - 1 + points.length) % points.length];
+                points[draggingIdx] = s2w(raw); rebuildGeometry(false); lastRawPos = raw; draw(); 
+            }
         }
 
         function handleEnd() {
@@ -455,7 +430,6 @@
             draggingIdx = null; targetEdgeIdx = null; isPanning = false; draw();
         }
 
-        // --- 画面管理 ---
         function resize() { if (!canvas) return; const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; draw(); }
         function switchTab(tab) { document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active')); document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active')); if (tab === 'draw') { document.getElementById('drawView').classList.add('active'); document.getElementById('tabDraw').classList.add('active'); resize(); } else { document.getElementById('historyView').classList.add('active'); document.getElementById('tabHistory').classList.add('active'); renderHistory(); } }
         function renderHistory() { const list = document.getElementById('historyList'); if (savedData.length === 0) { list.innerHTML = `<div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>`; return; } list.innerHTML = savedData.slice().reverse().map((data, idx) => { const actualIdx = savedData.length - 1 - idx; return `<div class="history-card"><input type="text" class="memo-input" placeholder="メモを入力..." value="${data.memo || ''}" onchange="updateMemo(${actualIdx}, this.value)"><div class="flex justify-between items-center mb-3 px-1"><span class="text-[#8E8E93] text-xs font-bold">${data.time}</span><span class="text-white font-black text-lg">${data.area} m²</span></div><img src="${data.img}" class="w-full rounded-xl border border-white/10 mb-3 bg-[#000]"><div class="flex gap-2"><button onclick="deleteHistory(${actualIdx})" class="flex-1 py-3 bg-[#2C2C2E] text-[#FF453A] rounded-xl font-bold text-sm">削除</button></div></div>`;}).join(''); }
@@ -471,8 +445,7 @@
             else if (!val && isClosed && activeMode === 'angle') val = getA(selectedIdx);
             const edgeInfo = document.getElementById('edgeInfo');
             if (activeMode === 'edge' && isClosed) {
-                edgeInfo.classList.remove('hidden');
-                const p1 = points[selectedIdx], p2 = points[(selectedIdx+1)%points.length], dx = p2.x-p1.x, dy = p2.y-p1.y, cos = Math.cos(-globalBaseAngle), sin = Math.sin(-globalBaseAngle), ldx = dx*cos-dy*sin, ldy = dx*sin+dy*cos;
+                edgeInfo.classList.remove('hidden'); const p1 = points[selectedIdx], p2 = points[(selectedIdx+1)%points.length], dx = p2.x-p1.x, dy = p2.y-p1.y, cos = Math.cos(-globalBaseAngle), sin = Math.sin(-globalBaseAngle), ldx = dx*cos-dy*sin, ldy = dx*sin+dy*cos;
                 let relDeg = Math.abs(Math.atan2(ldy, ldx)*180/Math.PI)%180; if (relDeg > 90) relDeg = 180-relDeg; document.getElementById('edgeAngle').innerText = relDeg.toFixed(1) + '°';
                 const currentL = val ? parseFloat(val) : 0;
                 if (relDeg > 89.5 || relDeg < 0.5) { document.getElementById('edgeSlopeH').innerText = "0.0"; document.getElementById('edgeTotalDrop').innerText = "0"; } 
@@ -481,7 +454,7 @@
             numericInput.value = val || ''; inputModal.classList.add('active'); numericInput.focus(); numericInput.select();
         }
 
-        // --- 初期化 ---
+        // --- 5. 初期化起動 ---
         window.onload = function() {
             canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d');
             areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal');
@@ -492,8 +465,6 @@
             document.getElementById('saveBtn').onclick = (e) => { e.stopPropagation(); saveState(); const val = parseFloat(numericInput.value); if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } inputModal.classList.remove('active'); modalCooldown = true; setTimeout(() => { modalCooldown = false; }, 350); rebuildGeometry(false); draw(); };
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); modalCooldown = true; setTimeout(() => { modalCooldown = false; }, 350); draw(); };
             exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '' }); persistData(); showToast("保存しました（保存済みタブを確認）"); };
-            numericInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('saveBtn').click(); } });
-            slopeInput.addEventListener('input', () => { const h = parseFloat(slopeInput.value); if (!isNaN(h)) { const deg = Math.atan(h / 100) * 180 / Math.PI; slopeResult.innerText = deg.toFixed(1) + '°'; } else { slopeResult.innerText = '0.0°'; } });
             document.getElementById('undoBtn').onclick = undo;
             document.getElementById('fitBtn').onclick = () => { rebuildGeometry(true); draw(); };
             document.getElementById('clearNumsBtn').onclick = () => { saveState(); manualLengths = {}; fixedAngles = {}; draw(); };
@@ -523,7 +494,6 @@
             canvas.addEventListener('touchstart', (e) => { isTouching = true; if (e.touches.length === 2) { isPanning = false; draggingIdx = null; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); initialZoom = zoom; const r = canvas.getBoundingClientRect(); initialPinchCenter = { x: (e.touches[0].clientX+e.touches[1].clientX)/2 - r.left, y: (e.touches[0].clientY+e.touches[1].clientY)/2 - r.top }; if (e.cancelable) e.preventDefault(); return; } handleStart(e); }, {passive:false});
             window.addEventListener('touchmove', (e) => { if (isTouching && e.touches.length === 2 && initialPinchDist) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), nz = Math.max(0.1, Math.min(10, initialZoom * (d / initialPinchDist))), r = nz / zoom; cameraX = initialPinchCenter.x - (initialPinchCenter.x - cameraX) * r; cameraY = initialPinchCenter.y - (initialPinchCenter.y - cameraY) * r; zoom = nz; draw(); if (e.cancelable) e.preventDefault(); return; } handleMove(e); }, {passive:false});
             window.addEventListener('touchend', (e) => { handleEnd(); setTimeout(() => { isTouching = false; }, 500); });
-            
             resize(); setTimeout(resize, 200);
         };
     </script>
