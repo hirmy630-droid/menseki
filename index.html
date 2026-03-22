@@ -31,6 +31,8 @@
             width: 100%; 
             height: 100%; 
             cursor: crosshair;
+            position: relative;
+            z-index: 10;
         }
         
         .app-container {
@@ -104,17 +106,21 @@
             user-select: text !important;
         }
         
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        
         .canvas-area { 
             flex: 1; 
             position: relative; 
             background: #1C1C1E; 
             overflow: hidden; 
+        }
+
+        #gridBg {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(#FFFFFF 1px, transparent 1px);
+            background-size: 22.4px 22.4px; 
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: 1;
         }
         
         .brand-watermark {
@@ -127,11 +133,13 @@
             letter-spacing: 0.12em;
             pointer-events: none;
             z-index: 20;
-            opacity: 0.6;
+            opacity: 0.3;
         }
 
         #historyView { overflow-y: auto; background: #000; padding: 12px; padding-bottom: calc(var(--safe-bottom) + 80px); }
         .history-card { background: #1C1C1E; border-radius: 18px; padding: 14px; margin-bottom: 12px; border: 1px solid #2C2C2E; }
+        .memo-input { width: 100%; background: transparent; border: none; color: #8E8E93; font-size: 14px; margin-bottom: 8px; font-weight: bold; }
+        .memo-input:focus { outline: none; color: #FFFFFF; }
 
         .bg-system-indigo { background-color: #5E5CE6; }
         .bg-system-gray { background-color: #2C2C2E; color: #FFFFFF; }
@@ -145,14 +153,12 @@
     <div id="toast" class="fixed top-28 left-1/2 -translate-x-1/2 bg-white/95 text-black px-6 py-4 rounded-full text-base font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-[60] shadow-xl whitespace-nowrap"></div>
 
     <div class="app-container">
-        <!-- Tab Bar -->
         <div class="tab-bar">
             <div id="tabDraw" class="tab-item active" onclick="switchTab('draw')">作図</div>
             <div id="tabHistory" class="tab-item" onclick="switchTab('history')">保存済み</div>
         </div>
 
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- 作図画面 -->
             <div id="drawView" class="tab-view active flex flex-col flex-1 overflow-hidden">
                 <header class="p-2 border-b border-white/5">
                     <div class="flex justify-center w-full mb-2">
@@ -174,7 +180,6 @@
                     </div>
                 </header>
 
-                <!-- 勾配入力バー -->
                 <div class="bg-[#C7C7CC] border-b border-black/10 px-3 py-1.5 flex items-center gap-3 shadow-inner">
                     <div class="flex items-center shrink-0">
                         <svg width="46" height="32" viewBox="0 0 60 40" class="text-[#5E5CE6]">
@@ -184,7 +189,7 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <input type="text" inputmode="decimal" pattern="[0-9\.]*" id="slopeInput" placeholder="勾配(mm)" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black" onclick="this.select()">
+                        <input type="text" id="slopeInput" placeholder="勾配(mm)" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black">
                     </div>
                     <div class="flex items-center justify-center min-w-[65px] bg-white h-9 rounded-lg border border-black/5 shadow-sm px-1">
                         <span id="slopeResult" class="text-sm font-black text-black tabular-nums">0.0°</span>
@@ -202,7 +207,7 @@
                 </div>
 
                 <div class="canvas-area">
-                    <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#FFFFFF 1px, transparent 1px); background-size: 32px 32px;"></div>
+                    <div id="gridBg"></div>
                     <div class="brand-watermark">KYOWAROOF</div>
                     <canvas id="canvas"></canvas>
                 </div>
@@ -221,20 +226,17 @@
         <div class="bg-[#1C1C1E] rounded-[2rem] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden">
             <div class="p-4 flex flex-col gap-2.5">
                 <h2 id="modalTitle" class="text-xl font-black text-center text-white mb-0.5">寸法の入力</h2>
-                
                 <div class="border-2 border-[#5E5CE6] rounded-2xl h-[3.6rem] flex items-center justify-center relative bg-[#1C1C1E]">
                     <div id="fakeInputCursor" class="text-white h-[2.8rem] min-w-[4rem] px-3 rounded-xl flex items-center justify-center font-black text-4xl tabular-nums transition-colors">
                         0.00
                     </div>
                     <span class="absolute right-5 text-white/30 font-black text-xl" id="modalUnit">m</span>
                 </div>
-
                 <div id="quickAngle" class="hidden grid grid-cols-3 gap-2">
                     <button type="button" id="setQuick90" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">90°</button>
                     <button type="button" id="setQuick270" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">270°</button>
                     <button type="button" id="setQuick45" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">45°</button>
                 </div>
-
                 <div class="grid grid-cols-4 gap-1.5">
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="7">7</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="8">8</button>
@@ -242,22 +244,18 @@
                     <button type="button" id="numpadBS" class="bg-[#48484A] text-white rounded-xl h-[3.1rem] flex items-center justify-center btn-tap">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0 -2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
                     </button>
-                    
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="4">4</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="5">5</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="6">6</button>
                     <button type="button" id="cancelModal" class="bg-[#48484A] text-white rounded-xl h-[3.1rem] font-bold text-[13px] btn-tap">キャンセル</button>
-                    
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="1">1</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="2">2</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="3">3</button>
                     <button type="button" id="saveBtn" class="bg-[#5E5CE6] text-white rounded-2xl font-black text-lg btn-tap row-span-2 shadow-lg h-[6.8rem]">適用</button>
-                    
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="0">0</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="00">00</button>
                     <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val=".">.</button>
                 </div>
-
                 <div id="edgeInfo" class="hidden border border-white/10 p-3 rounded-xl">
                     <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-1.5">
                         <div class="text-[14px] text-[#5E5CE6] font-bold">勾配と高低差</div>
@@ -279,9 +277,14 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'area_calc_data_v25';
-        let canvas, ctx, areaEl, inputModal, fitBtn, slopeInput, slopeResult, exportBtn;
-        let points = [], manualLengths = {}, fixedAngles = {}, isClosed = false, selectedIdx = -1, activeMode = 'edge', ppx = 60;
+        const STORAGE_KEY = 'area_calc_data_v36';
+        let canvas, ctx, areaEl, inputModal, fitBtn, slopeInput, slopeResult, exportBtn, gridBg;
+        let points = [], manualLengths = {}, fixedAngles = {}, isClosed = false, selectedIdx = -1, activeMode = 'edge';
+        
+        // ドットの間隔を絶対基準とする（1m = 22.4px）
+        const BASE_DOT_PITCH = 22.4;
+        let ppx = BASE_DOT_PITCH; 
+
         let actionHistory = [], cameraX = 0, cameraY = 0, zoom = 1.0, isPanning = false, lastRawPos = {x: 0, y: 0}, startRawPos = {x: 0, y: 0}, hasMoved = false;
         let globalBaseAngle = 0, globalIsCW = true, initialPinchDist = null, initialZoom = 1, initialPinchCenter = null;
         let updateCount = 0; 
@@ -330,6 +333,7 @@
             for (let i = 0; i < logical.length; i++) { const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx + startAnchor.x, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx + startAnchor.y }; }
             let area = 0; for (let i = 0; i < points.length; i++) { const p1 = points[i], p2 = points[(i + 1) % points.length]; area += p1.x * p2.y - p2.x * p1.y; }
             areaEl.innerText = Math.abs(area / (2 * ppx * ppx)).toFixed(2);
+            if (isClosed) fitBtn.classList.remove('hidden'); else fitBtn.classList.add('hidden');
             if (shouldFit) {
                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
                 points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
@@ -341,6 +345,11 @@
         function draw() {
             if (!ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (gridBg) {
+                const s = BASE_DOT_PITCH * zoom;
+                gridBg.style.backgroundSize = `${s}px ${s}px`;
+                gridBg.style.backgroundPosition = `${cameraX}px ${cameraY}px`;
+            }
             if (points.length === 0) return;
             if (isClosed) { ctx.beginPath(); ctx.moveTo(w2s(points[0]).x, w2s(points[0]).y); for (let i = 1; i < points.length; i++) ctx.lineTo(w2s(points[i]).x, w2s(points[i]).y); ctx.closePath(); ctx.fillStyle = 'rgba(94, 92, 230, 0.15)'; ctx.fill(); }
             const limit = isClosed ? points.length : points.length - 1;
@@ -383,7 +392,7 @@
         for (let i = 0; i < points.length; i++) { const d = distToSegment(raw, w2s(points[i]), w2s(points[(i+1)%points.length])); if (d < 35 && d < minDist) { minDist = d; hitType = 'edge'; hitIdx = i; } } }
         if (hitType === 'vertex') { activeMode = 'angle'; selectedIdx = hitIdx; openModal(); } else if (hitType === 'edge' || hitType === 'label') { activeMode = 'edge'; selectedIdx = hitIdx; openModal(); } } }
 
-        function finalizeDrawing() { saveState(); isClosed = true; let s = 0; const N = points.length; for(let i = 0; i < N; i++) s += points[i].x * points[(i+1)%N].y - points[(i+1)%N].x * points[i].y; globalIsCW = s > 0; globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x); rebuildGeometry(true); draw(); }
+        function finalizeDrawing() { saveState(); isClosed = true; let s = 0; const N = points.length; for(let i = 0; i < N; i++) s += points[i].x * points[(i+1)%N].y - points[(i+1)%N].x * points[i].y; globalIsCW = s > 0; globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x); rebuildGeometry(false); draw(); }
 
         function updateModalDisplay() { const displayEl = document.getElementById('fakeInputCursor'); displayEl.innerText = currentInputValue || "0"; if (isFirstInput) { displayEl.classList.remove('bg-[#5E5CE6]'); displayEl.classList.add('text-[#5E5CE6]'); displayEl.classList.remove('text-white'); } else { displayEl.classList.remove('text-[#5E5CE6]'); displayEl.classList.add('text-white'); } }
 
@@ -394,26 +403,17 @@
             let val = activeMode === 'edge' ? manualLengths[selectedIdx] : fixedAngles[selectedIdx];
             if (!val && activeMode === 'edge') val = (Math.hypot(points[(selectedIdx+1)%points.length].x-points[selectedIdx].x, points[(selectedIdx+1)%points.length].y-points[selectedIdx].y)/ppx).toFixed(2);
             else if (!val && isClosed && activeMode === 'angle') val = Math.round(getActualAngle(selectedIdx)*10)/10;
-            
             const edgeInfo = document.getElementById('edgeInfo');
             let showEdgeInfo = false;
             if (activeMode === 'edge' && isClosed) {
                 const p1 = points[selectedIdx], p2 = points[(selectedIdx+1)%points.length], dx = p2.x-p1.x, dy = p2.y-p1.y, cos = Math.cos(-globalBaseAngle), sin = Math.sin(-globalBaseAngle), ldx = dx*cos-dy*sin, ldy = dx*sin+dy*cos;
                 let relDeg = Math.abs(Math.atan2(ldy, ldx)*180/Math.PI)%180; if (relDeg > 90) relDeg = 180-relDeg;
-                
                 if (relDeg >= 0.5 && relDeg <= 89.5) {
                     showEdgeInfo = true;
                     document.getElementById('edgeAngle').innerText = relDeg.toFixed(1) + '°';
                     const currentL = parseFloat(val) || 0;
-                    if (relDeg <= 45) {
-                        const h = 100 * Math.tan(relDeg * Math.PI / 180);
-                        document.getElementById('edgeSlopeH').innerText = h.toFixed(1);
-                        document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.sin(relDeg * Math.PI / 180) * 1000);
-                    } else {
-                        const w = 100 / Math.tan(relDeg * Math.PI / 180);
-                        document.getElementById('edgeSlopeH').innerText = w.toFixed(1);
-                        document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.cos(relDeg * Math.PI / 180) * 1000);
-                    }
+                    if (relDeg <= 45) { const h = 100 * Math.tan(relDeg * Math.PI / 180); document.getElementById('edgeSlopeH').innerText = h.toFixed(1); document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.sin(relDeg * Math.PI / 180) * 1000); } 
+                    else { const w = 100 / Math.tan(relDeg * Math.PI / 180); document.getElementById('edgeSlopeH').innerText = w.toFixed(1); document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.cos(relDeg * Math.PI / 180) * 1000); }
                 }
             }
             if (showEdgeInfo) edgeInfo.classList.remove('hidden'); else edgeInfo.classList.add('hidden');
@@ -421,34 +421,57 @@
         }
 
         window.onload = function() {
-            canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d'); areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal'); fitBtn = document.getElementById('fitBtn'); slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult'); exportBtn = document.getElementById('exportBtn');
-            
-            // ★「勾配(mm)」の計算処理を追加
-            slopeInput.oninput = () => {
-                const val = parseFloat(slopeInput.value);
-                if (!isNaN(val)) {
-                    const deg = Math.atan(val / 100) * 180 / Math.PI;
-                    slopeResult.innerText = deg.toFixed(1) + '°';
-                } else {
-                    slopeResult.innerText = '0.0°';
-                }
-            };
-
+            canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d'); areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal'); fitBtn = document.getElementById('fitBtn'); slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult'); exportBtn = document.getElementById('exportBtn'); gridBg = document.getElementById('gridBg');
+            slopeInput.oninput = () => { const val = parseFloat(slopeInput.value); if (!isNaN(val)) { const deg = Math.atan(val / 100) * 180 / Math.PI; slopeResult.innerText = deg.toFixed(1) + '°'; } else { slopeResult.innerText = '0.0°'; } };
             document.querySelectorAll('.numpad-btn').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const val = btn.getAttribute('data-val'); if (isFirstInput) { currentInputValue = val; isFirstInput = false; } else { if (val === '.' && currentInputValue.includes('.')) return; if (currentInputValue === '0' && val !== '.') currentInputValue = val; else currentInputValue += val; } updateModalDisplay(); }; });
             document.getElementById('numpadBS').onclick = (e) => { e.stopPropagation(); if (isFirstInput) { currentInputValue = ""; isFirstInput = false; } else { currentInputValue = currentInputValue.slice(0, -1); } updateModalDisplay(); };
             document.getElementById('saveBtn').onclick = (e) => { e.stopPropagation(); saveState(); const val = parseFloat(currentInputValue); if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } inputModal.classList.remove('active'); rebuildGeometry(false); draw(); };
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); draw(); };
-            exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '' }); persistData(); showToast("保存しました"); };
+            exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '', points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW, updateCount, slopeValue: slopeInput.value, cameraX, cameraY, zoom }); persistData(); showToast("保存しました"); };
             document.getElementById('undoBtn').onclick = undo; document.getElementById('fitBtn').onclick = () => { rebuildGeometry(true); draw(); };
-            document.getElementById('resetBtn').onclick = () => { saveState(); points = []; manualLengths = {}; fixedAngles = {}; isClosed = false; updateCount = 0; cameraX=0; cameraY=0; zoom=1; draw(); fitBtn.classList.add('hidden'); };
+            document.getElementById('resetBtn').onclick = () => { saveState(); points = []; manualLengths = {}; fixedAngles = {}; isClosed = false; updateCount = 0; cameraX=0; cameraY=0; zoom=1; slopeInput.value=""; slopeInput.oninput(); draw(); fitBtn.classList.add('hidden'); };
             document.getElementById('setQuick90').onclick = () => { currentInputValue = "90"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick270').onclick = () => { currentInputValue = "270"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick45').onclick = () => { currentInputValue = "45"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
-            document.getElementById('executeBtn').onclick = () => { if (!isClosed) { showToast("図形を閉じてから実行してください"); return; } saveState(); const N = points.length; let hasManual = false; for(let i = 0; i < N; i++) { if(manualLengths[i] !== undefined) { const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); ppx = d / manualLengths[i]; hasManual = true; break; } }
-            if(!hasManual) { const d = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y); ppx = d / 10; }
-            for (let i = 0; i < N - 1; i++) { if (manualLengths[i] === undefined) { const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); manualLengths[i] = Math.round((d / ppx) * 100) / 100; } }
-            for (let i = 1; i < N - 1; i++) { if (fixedAngles[i] === undefined) { let actualD = getActualAngle(i); if (updateCount === 0) { if (Math.abs(actualD - 90) <= 25) fixedAngles[i] = 90; else if (Math.abs(actualD - 270) <= 25) fixedAngles[i] = 270; else fixedAngles[i] = Math.round(actualD*10)/10; } else { fixedAngles[i] = Math.round(actualD*10)/10; } } }
-            updateCount++; rebuildGeometry(true); draw(); showToast("作図を更新しました"); };
+            
+            // ★修正ポイント: 決定時にppx（ドット基準）を勝手に書き換えない
+            document.getElementById('executeBtn').onclick = () => {
+                if (!isClosed) { showToast("図形を閉じてから実行してください"); return; }
+                saveState();
+                const N = points.length;
+
+                // 手入力された辺がある場合はその辺を基準にppxを再計算（正確な数値に合わせるため）
+                // 手入力がない場合は現在のppx（ドット基準）をそのまま使う
+                let hasManual = false;
+                for(let i = 0; i < N; i++) {
+                    if(manualLengths[i] !== undefined) {
+                        const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y);
+                        ppx = d / manualLengths[i];
+                        hasManual = true; break;
+                    }
+                }
+
+                // 未入力の辺の長さを現在の見た目（ドット基準）で確定させる
+                for (let i = 0; i < N - 1; i++) {
+                    if (manualLengths[i] === undefined) {
+                        const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y);
+                        manualLengths[i] = Math.round((d / ppx) * 100) / 100;
+                    }
+                }
+
+                // 未入力の角度を確定させる（スナップはさせず、見たままの角度を維持）
+                for (let i = 1; i < N - 1; i++) {
+                    if (fixedAngles[i] === undefined) {
+                        fixedAngles[i] = Math.round(getActualAngle(i) * 10) / 10;
+                    }
+                }
+
+                updateCount++;
+                rebuildGeometry(false); // 勝手にズームを変えない
+                draw();
+                showToast("数値を確定しました");
+            };
+
             canvas.addEventListener('mousedown', handleStart); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleEnd);
             canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { isPanning = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); initialZoom = zoom; const r = canvas.getBoundingClientRect(); initialPinchCenter = { x: (e.touches[0].clientX+e.touches[1].clientX)/2 - r.left, y: (e.touches[0].clientY+e.touches[1].clientY)/2 - r.top }; if (e.cancelable) e.preventDefault(); return; } handleStart(e); }, {passive:false});
             window.addEventListener('touchmove', (e) => { if (isInteractingWithCanvas && e.touches.length === 2 && initialPinchDist) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), nz = Math.max(0.1, Math.min(10, initialZoom * (d / initialPinchDist))), r = nz / zoom; cameraX = initialPinchCenter.x - (initialPinchCenter.x - cameraX) * r; cameraY = initialPinchCenter.y - (initialPinchCenter.y - cameraY) * r; zoom = nz; draw(); if (e.cancelable) e.preventDefault(); return; } handleMove(e); }, {passive:false});
@@ -456,7 +479,10 @@
         };
 
         function switchTab(tab) { document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none'); document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active')); if (tab === 'draw') { document.getElementById('drawView').style.display = 'flex'; document.getElementById('tabDraw').classList.add('active'); resize(); } else { document.getElementById('historyView').style.display = 'block'; document.getElementById('tabHistory').classList.add('active'); renderHistory(); } }
-        function renderHistory() { const list = document.getElementById('historyList'); if (savedData.length === 0) { list.innerHTML = `<div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>`; return; } list.innerHTML = savedData.slice().reverse().map((data, idx) => { const actualIdx = savedData.length - 1 - idx; return `<div class="history-card"><input type="text" class="memo-input" placeholder="メモを入力..." value="${data.memo || ''}" onchange="updateMemo(${actualIdx}, this.value)"><div class="flex justify-between items-center mb-2 px-1"><span class="text-[#8E8E93] text-xs font-bold">${data.time}</span><span class="text-white font-black text-lg">${data.area} m²</span></div><img src="${data.img}" class="w-full rounded-xl border border-white/10 mb-3 bg-[#000]"><div class="flex gap-2"><button onclick="deleteHistory(${actualIdx})" class="flex-1 py-3 bg-[#2C2C2E] text-[#FF453A] rounded-xl font-bold text-sm">削除</button></div></div>`; }).join(''); }
+        function loadHistory(idx) { const data = savedData[idx]; if (!data || !data.points) { showToast("復元用データがありません"); return; } saveState(); points = JSON.parse(JSON.stringify(data.points)); manualLengths = {...data.manualLengths}; fixedAngles = {...data.fixedAngles}; isClosed = data.isClosed; ppx = data.ppx; globalBaseAngle = data.globalBaseAngle; globalIsCW = data.globalIsCW; updateCount = data.updateCount || 0; slopeInput.value = data.slopeValue || ""; cameraX = data.cameraX || 0; cameraY = data.cameraY || 0; zoom = data.zoom || 1.0; slopeInput.oninput(); switchTab('draw'); rebuildGeometry(false); draw(); showToast("データを読み込みました"); }
+        function renderHistory() { const list = document.getElementById('historyList'); if (savedData.length === 0) { list.innerHTML = `<div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>`; return; } list.innerHTML = savedData.slice().reverse().map((data, idx) => { const actualIdx = savedData.length - 1 - idx; return `<div class="history-card"><input type="text" class="memo-input" placeholder="メモを入力..." value="${data.memo || ''}" onchange="updateMemo(${actualIdx}, this.value)"><div class="flex justify-between items-center mb-2 px-1"><span class="text-[#8E8E93] text-xs font-bold">${data.time}</span><span class="text-white font-black text-lg">${data.area} m²</span></div><div onclick="loadHistory(${actualIdx})" class="active:opacity-70 transition-opacity"><img src="${data.img}" class="w-full rounded-xl border border-white/10 mb-3 bg-[#000]"><div class="text-center text-[11px] text-[#5E5CE6] font-bold mb-2 uppercase tracking-widest">タップで編集を再開</div></div><div class="flex gap-2"><button onclick="deleteHistory(${actualIdx})" class="flex-1 py-3 bg-[#2C2C2E] text-[#FF453A] rounded-xl font-bold text-sm btn-tap">削除</button></div></div>`; }).join(''); }
+        function updateMemo(idx, val) { savedData[idx].memo = val; persistData(); showToast("メモを保存しました"); }
+        function deleteHistory(idx) { if(confirm("このデータを削除してもよろしいですか？")) { savedData.splice(idx, 1); persistData(); renderHistory(); showToast("削除しました"); } }
     </script>
 </body>
 </html>
