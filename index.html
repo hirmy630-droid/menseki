@@ -78,11 +78,11 @@
             justify-content: center; 
             z-index: 200; 
             backdrop-filter: blur(15px); 
-            padding-top: 10vh; 
+            padding-top: 5vh; 
         }
         .modal.active { display: flex; }
         
-        .btn-tap { transition: transform 0.1s; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; border: none; }
+        .btn-tap { transition: transform 0.1s; cursor: pointer; display: flex; align-items: center; justify-content: center; border: none; }
         .btn-tap:active { transform: scale(0.94); opacity: 0.8; }
         
         .header-btn { 
@@ -93,7 +93,7 @@
             font-weight: 800;
         }
 
-        input[type="number"], input[type="text"] {
+        input[type="text"] {
             -moz-appearance: textfield;
             appearance: textfield;
             background: #2C2C2E;
@@ -104,20 +104,10 @@
             user-select: text !important;
         }
         
-        /* 数値入力欄の上下矢印（スピンボタン）を消去 */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
-        }
-        
-        #numericInput { 
-            font-size: 3rem !important; 
-            font-family: ui-monospace, monospace !important;
-            height: 64px !important;
-            border-radius: 16px;
-            width: 100%;
-            text-align: center;
         }
         
         .canvas-area { 
@@ -179,12 +169,12 @@
                             <button type="button" id="fitBtn" class="header-btn bg-system-orange text-white btn-tap hidden">全体</button>
                         </div>
                         <div class="flex gap-1">
-                            <!-- 数値クリアボタンを削除しました -->
                             <button type="button" id="resetBtn" class="header-btn bg-system-red btn-tap">リセット</button>
                         </div>
                     </div>
                 </header>
 
+                <!-- 勾配入力バー -->
                 <div class="bg-[#C7C7CC] border-b border-black/10 px-3 py-1.5 flex items-center gap-3 shadow-inner">
                     <div class="flex items-center shrink-0">
                         <svg width="46" height="32" viewBox="0 0 60 40" class="text-[#5E5CE6]">
@@ -229,36 +219,58 @@
     <!-- モーダル -->
     <div id="inputModal" class="modal px-4">
         <div class="bg-[#1C1C1E] rounded-[2rem] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden">
-            <div class="p-6 flex flex-col gap-5">
-                <h2 id="modalTitle" class="text-xl font-black text-center text-white">設定</h2>
-                <div id="inputGroup">
-                    <div class="relative">
-                        <input type="text" id="numericInput" inputmode="decimal" pattern="[0-9\.]*" placeholder="0.00" class="outline-none transition-all font-bold tabular-nums">
-                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-black text-xl pointer-events-none">m</span>
+            <div class="p-4 flex flex-col gap-2.5">
+                <h2 id="modalTitle" class="text-xl font-black text-center text-white mb-0.5">寸法の入力</h2>
+                
+                <div class="border-2 border-[#5E5CE6] rounded-2xl h-[3.6rem] flex items-center justify-center relative bg-[#1C1C1E]">
+                    <div id="fakeInputCursor" class="text-white h-[2.8rem] min-w-[4rem] px-3 rounded-xl flex items-center justify-center font-black text-4xl tabular-nums transition-colors">
+                        0.00
                     </div>
+                    <span class="absolute right-5 text-white/30 font-black text-xl" id="modalUnit">m</span>
                 </div>
+
                 <div id="quickAngle" class="hidden grid grid-cols-3 gap-2">
-                    <button type="button" id="setQuick90" class="py-3.5 bg-[#2C2C2E] text-white rounded-xl font-black btn-tap">90°</button>
-                    <button type="button" id="setQuick270" class="py-3.5 bg-[#2C2C2E] text-white rounded-xl font-black btn-tap">270°</button>
-                    <button type="button" id="setQuick45" class="py-3.5 bg-[#2C2C2E] text-white rounded-xl font-black btn-tap">45°</button>
+                    <button type="button" id="setQuick90" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">90°</button>
+                    <button type="button" id="setQuick270" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">270°</button>
+                    <button type="button" id="setQuick45" class="py-1.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">45°</button>
                 </div>
-                <div class="flex gap-3">
-                    <button type="button" id="cancelModal" class="flex-1 h-12 bg-[#2C2C2E] text-white rounded-xl font-bold btn-tap">キャンセル</button>
-                    <button type="button" id="saveBtn" class="flex-1 h-12 bg-system-indigo text-white rounded-xl font-black btn-tap">適用</button>
+
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="7">7</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="8">8</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="9">9</button>
+                    <button type="button" id="numpadBS" class="bg-[#48484A] text-white rounded-xl h-[3.1rem] flex items-center justify-center btn-tap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0 -2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                    </button>
+                    
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="4">4</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="5">5</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="6">6</button>
+                    <button type="button" id="cancelModal" class="bg-[#48484A] text-white rounded-xl h-[3.1rem] font-bold text-[13px] btn-tap">キャンセル</button>
+                    
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="1">1</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="2">2</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="3">3</button>
+                    <button type="button" id="saveBtn" class="bg-[#5E5CE6] text-white rounded-2xl font-black text-lg btn-tap row-span-2 shadow-lg h-[6.8rem]">適用</button>
+                    
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="0">0</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val="00">00</button>
+                    <button type="button" class="numpad-btn bg-[#2C2C2E] text-white rounded-xl h-[3.1rem] font-bold text-2xl btn-tap" data-val=".">.</button>
                 </div>
-                <div id="edgeInfo" class="hidden bg-[#2C2C2E] border border-white/5 p-4 rounded-2xl">
-                    <div class="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
-                        <div class="text-[14px] text-system-indigo font-black">勾配と高低差</div>
-                        <div class="text-[14px] font-bold text-white bg-black/30 px-2.5 py-1 rounded-lg" id="edgeAngle">0.0°</div>
+
+                <div id="edgeInfo" class="hidden border border-white/10 p-3 rounded-xl">
+                    <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-1.5">
+                        <div class="text-[14px] text-[#5E5CE6] font-bold">勾配と高低差</div>
+                        <div class="text-[14px] font-bold text-white bg-black/40 px-2.5 py-0.5 rounded-lg" id="edgeAngle">0.0°</div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <div class="text-[14px] text-[#8E8E93] font-bold mb-1">水平100mm当り</div>
-                            <div class="text-base font-black text-white flex items-end gap-1"><span class="text-indigo-400" id="edgeSlopeH">0.0</span><span class="text-[14px] text-white/40">mm</span></div>
+                            <div class="text-[14px] text-[#8E8E93] font-bold mb-0.5">水平100mm当り</div>
+                            <div class="text-base font-black text-white flex items-end gap-1"><span class="text-[#5E5CE6] text-[20px] leading-none" id="edgeSlopeH">0.0</span><span class="text-[14px] text-white/40 mb-0.5">mm</span></div>
                         </div>
                         <div>
-                            <div class="text-[14px] text-[#8E8E93] font-bold mb-1">区間高低差</div>
-                            <div class="text-base font-black text-white flex items-end gap-1"><span class="text-indigo-400" id="edgeTotalDrop">0</span><span class="text-[14px] text-white/40">mm</span></div>
+                            <div class="text-[14px] text-[#8E8E93] font-bold mb-0.5">区間高低差</div>
+                            <div class="text-base font-black text-white flex items-end gap-1"><span class="text-[#5E5CE6] text-[20px] leading-none" id="edgeTotalDrop">0</span><span class="text-[14px] text-white/40 mb-0.5">mm</span></div>
                         </div>
                     </div>
                 </div>
@@ -267,14 +279,16 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'area_calc_data_v20';
-        let canvas, ctx, areaEl, inputModal, numericInput, fitBtn, slopeInput, slopeResult, exportBtn;
+        const STORAGE_KEY = 'area_calc_data_v25';
+        let canvas, ctx, areaEl, inputModal, fitBtn, slopeInput, slopeResult, exportBtn;
         let points = [], manualLengths = {}, fixedAngles = {}, isClosed = false, selectedIdx = -1, activeMode = 'edge', ppx = 60;
         let actionHistory = [], cameraX = 0, cameraY = 0, zoom = 1.0, isPanning = false, lastRawPos = {x: 0, y: 0}, startRawPos = {x: 0, y: 0}, hasMoved = false;
         let globalBaseAngle = 0, globalIsCW = true, initialPinchDist = null, initialZoom = 1, initialPinchCenter = null;
         let updateCount = 0; 
         let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let isInteractingWithCanvas = false;
+        let currentInputValue = "0.00";
+        let isFirstInput = true;
 
         function persistData() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData)); } catch(e) {} }
         function showToast(msg) { const toast = document.getElementById('toast'); if (!toast) return; toast.innerText = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 2000); }
@@ -283,13 +297,8 @@
         function s2w(s) { return { x: (s.x - cameraX) / zoom, y: (s.y - cameraY) / zoom }; }
         function distToSegment(p, v, w) { const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2); if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y); let t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2)); return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y))); }
         function saveState() { const state = { points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW, updateCount }; actionHistory.push(state); if (actionHistory.length > 50) actionHistory.shift(); }
-        
-        function undo() { 
-            if (actionHistory.length === 0) return; 
-            const state = actionHistory.pop(); 
-            points = state.points; manualLengths = state.manualLengths; fixedAngles = state.fixedAngles; isClosed = state.isClosed; ppx = state.ppx; globalBaseAngle = state.globalBaseAngle; globalIsCW = state.globalIsCW; updateCount = state.updateCount || 0;
-            rebuildGeometry(false); draw(); 
-        }
+        function undo() { if (actionHistory.length === 0) return; const state = actionHistory.pop(); points = state.points; manualLengths = state.manualLengths; fixedAngles = state.fixedAngles; isClosed = state.isClosed; ppx = state.ppx; globalBaseAngle = state.globalBaseAngle; globalIsCW = state.globalIsCW; updateCount = state.updateCount || 0; rebuildGeometry(false); draw(); }
+        function resize() { if (!canvas) return; const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; draw(); }
 
         function getActualAngle(idx) {
             const prev = points[(idx-1+points.length)%points.length], curr = points[idx], next = points[(idx+1)%points.length];
@@ -313,19 +322,12 @@
                 if (len < 0.01) len = 0.01; 
                 logical[i+1] = { x: logical[i].x + len * Math.cos(curAngle), y: logical[i].y + len * Math.sin(curAngle) };
                 if (i < points.length - 2) { 
-                    if (fixedAngles[i+1] !== undefined) { 
-                        curAngle += (globalIsCW ? (180 - fixedAngles[i+1]) * Math.PI / 180 : -(180 - fixedAngles[i+1]) * Math.PI / 180); 
-                    } else { 
-                        const a1 = Math.atan2(points[i+1].y - points[i].y, points[i+1].x - points[i].x);
-                        const a2 = Math.atan2(points[i+2].y - points[i+1].y, points[i+2].x - points[i+1].x);
-                        let turn = a2 - a1; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2; curAngle += turn; 
-                    } 
+                    if (fixedAngles[i+1] !== undefined) { curAngle += (globalIsCW ? (180 - fixedAngles[i+1]) * Math.PI / 180 : -(180 - fixedAngles[i+1]) * Math.PI / 180); } 
+                    else { const a1 = Math.atan2(points[i+1].y - points[i].y, points[i+1].x - points[i].x), a2 = Math.atan2(points[i+2].y - points[i+1].y, points[i+2].x - points[i+1].x); let turn = a2 - a1; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2; curAngle += turn; } 
                 }
             }
             const rot = globalBaseAngle - Math.atan2(logical[1].y - logical[0].y, logical[1].x - logical[0].x);
-            for (let i = 0; i < logical.length; i++) { 
-                const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx + startAnchor.x, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx + startAnchor.y }; 
-            }
+            for (let i = 0; i < logical.length; i++) { const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx + startAnchor.x, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx + startAnchor.y }; }
             let area = 0; for (let i = 0; i < points.length; i++) { const p1 = points[i], p2 = points[(i + 1) % points.length]; area += p1.x * p2.y - p2.x * p1.y; }
             areaEl.innerText = Math.abs(area / (2 * ppx * ppx)).toFixed(2);
             if (shouldFit) {
@@ -334,18 +336,11 @@
                 const pad = 60; zoom = Math.min((canvas.width - pad*2) / (maxX-minX||1), (canvas.height - pad*2) / (maxY-minY||1));
                 cameraX = canvas.width/2 - ((minX+maxX)/2)*zoom; cameraY = canvas.height/2 - ((minY+maxY)/2)*zoom;
             }
-            if (isClosed) fitBtn.classList.remove('hidden'); else fitBtn.classList.add('hidden');
         }
 
         function draw() {
             if (!ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (isClosed && points.length >= 3) {
-                let area = 0; for (let i = 0; i < points.length; i++) { const p1 = points[i], p2 = points[(i + 1) % points.length]; area += p1.x * p2.y - p2.x * p1.y; }
-                areaEl.innerText = Math.abs(area / (2 * ppx * ppx)).toFixed(2);
-            }
-            
             if (points.length === 0) return;
             if (isClosed) { ctx.beginPath(); ctx.moveTo(w2s(points[0]).x, w2s(points[0]).y); for (let i = 1; i < points.length; i++) ctx.lineTo(w2s(points[i]).x, w2s(points[i]).y); ctx.closePath(); ctx.fillStyle = 'rgba(94, 92, 230, 0.15)'; ctx.fill(); }
             const limit = isClosed ? points.length : points.length - 1;
@@ -356,222 +351,112 @@
                 ctx.stroke();
             }
             ctx.setLineDash([]); 
-            points.forEach((p_world, i) => { 
-                if (isClosed) {
-                    let actualD = getActualAngle(i);
-                    const isFixed = fixedAngles[i] !== undefined, label = `${isFixed ? fixedAngles[i] : Math.round(actualD*10)/10}°`;
-                    ctx.font = 'bold 12px sans-serif'; const tw = ctx.measureText(label).width;
-                    
-                    const pPrev = w2s(points[(i-1+points.length)%points.length]), pCurr = w2s(points[i]), pNext = w2s(points[(i+1)%points.length]);
-                    const v1 = { x: pPrev.x - pCurr.x, y: pPrev.y - pCurr.y };
-                    const v2 = { x: pNext.x - pCurr.x, y: pNext.y - pCurr.y };
-                    const l1 = Math.hypot(v1.x, v1.y), l2 = Math.hypot(v2.x, v2.y);
-                    let mid = { x: v1.x/l1 + v2.x/l2, y: v1.y/l1 + v2.y/l2 };
-                    if (Math.hypot(mid.x, mid.y) < 0.001) mid = { x: -v1.y, y: v1.x };
-                    let bisectorAngle = Math.atan2(mid.y, mid.x);
-                    if (actualD > 180) bisectorAngle += Math.PI;
-
-                    const tx = pCurr.x + Math.cos(bisectorAngle)*42, ty = pCurr.y + Math.sin(bisectorAngle)*42;
-                    ctx.fillStyle = 'rgba(28, 28, 30, 0.9)'; ctx.beginPath(); ctx.roundRect(tx - tw/2 - 5, ty - 10, tw + 10, 20, 5); ctx.fill();
-                    ctx.fillStyle = isFixed ? '#FF453A' : '#8E8E93'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tx, ty);
-                }
-            });
-            points.forEach((p_world, i) => { 
-                const p = w2s(p_world); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); 
-                ctx.fillStyle = (i === 0) ? '#FFFFFF' : '#1C1C1E'; ctx.fill(); 
-                ctx.strokeStyle = '#5E5CE6'; ctx.lineWidth = 3; ctx.stroke(); 
-            });
+            points.forEach((p_world, i) => { if (isClosed) {
+                let actualD = getActualAngle(i); const isFixed = fixedAngles[i] !== undefined, label = `${isFixed ? fixedAngles[i] : Math.round(actualD*10)/10}°`;
+                ctx.font = 'bold 12px sans-serif'; const tw = ctx.measureText(label).width;
+                const pPrev = w2s(points[(i-1+points.length)%points.length]), pCurr = w2s(points[i]), pNext = w2s(points[(i+1)%points.length]);
+                const v1 = { x: pPrev.x - pCurr.x, y: pPrev.y - pCurr.y }, v2 = { x: pNext.x - pCurr.x, y: pNext.y - pCurr.y };
+                const l1 = Math.hypot(v1.x, v1.y), l2 = Math.hypot(v2.x, v2.y);
+                let mid = { x: v1.x/l1 + v2.x/l2, y: v1.y/l1 + v2.y/l2 }; if (Math.hypot(mid.x, mid.y) < 0.001) mid = { x: -v1.y, y: v1.x };
+                let bisectorAngle = Math.atan2(mid.y, mid.x); if (actualD > 180) bisectorAngle += Math.PI;
+                const tx = pCurr.x + Math.cos(bisectorAngle)*42, ty = pCurr.y + Math.sin(bisectorAngle)*42;
+                ctx.fillStyle = 'rgba(28, 28, 30, 0.9)'; ctx.beginPath(); ctx.roundRect(tx - tw/2 - 5, ty - 10, tw + 10, 20, 5); ctx.fill();
+                ctx.fillStyle = isFixed ? '#FF453A' : '#8E8E93'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tx, ty);
+            }});
+            points.forEach((p_world, i) => { const p = w2s(p_world); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fillStyle = (i === 0) ? '#FFFFFF' : '#1C1C1E'; ctx.fill(); ctx.strokeStyle = '#5E5CE6'; ctx.lineWidth = 3; ctx.stroke(); });
             for (let i = 0; i < limit; i++) {
                 const p1 = w2s(points[i]), p2 = w2s(points[(i + 1) % points.length]), isAuto = isClosed && i === points.length - 1, midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
                 const d = Math.hypot(points[(i+1)%points.length].x - points[i].x, points[(i+1)%points.length].y - points[i].y), val = manualLengths[i] !== undefined ? manualLengths[i] : (d / ppx), label = `${val.toFixed(2)}m`;
                 ctx.font = 'bold 14px ui-monospace, monospace'; const tw = ctx.measureText(label).width;
                 ctx.fillStyle = isAuto ? '#3b82f6' : (manualLengths[i] !== undefined ? '#FFFFFF' : 'rgba(142,142,147,0.9)');
                 ctx.beginPath(); ctx.roundRect(midX - tw/2 - 9, midY - 13, tw + 18, 26, 6); ctx.fill();
-                ctx.fillStyle = (manualLengths[i] !== undefined) ? '#000000' : '#FFFFFF'; 
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, midX, midY);
+                ctx.fillStyle = (manualLengths[i] !== undefined) ? '#000000' : '#FFFFFF'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, midX, midY);
             }
         }
 
-        function handleStart(e) {
-            if (e.target.id !== 'canvas') return;
-            if (document.getElementById('historyView').style.display === 'block') return;
-            
-            isInteractingWithCanvas = true;
-            const raw = getRawCoords(e); lastRawPos = raw; startRawPos = {x: raw.x, y: raw.y}; hasMoved = false;
-            if (e.cancelable) e.preventDefault();
-            isPanning = true;
-        }
+        function handleStart(e) { if (e.target.id !== 'canvas') return; if (document.getElementById('historyView').style.display === 'block') return; isInteractingWithCanvas = true; const raw = getRawCoords(e); lastRawPos = raw; startRawPos = {x: raw.x, y: raw.y}; hasMoved = false; if (e.cancelable) e.preventDefault(); isPanning = true; }
+        function handleMove(e) { if (!isInteractingWithCanvas || !isPanning) return; const raw = getRawCoords(e); if (e.cancelable) e.preventDefault(); if (Math.hypot(raw.x - startRawPos.x, raw.y - startRawPos.y) > 5) hasMoved = true; if (isClosed && hasMoved) { cameraX += raw.x - lastRawPos.x; cameraY += raw.y - lastRawPos.y; lastRawPos = raw; draw(); } }
+        function handleEnd(e) { if (!isInteractingWithCanvas) return; isInteractingWithCanvas = false; isPanning = false; if (!hasMoved) { const raw = startRawPos; if (!isClosed) { saveState(); if (points.length >= 3 && Math.hypot(raw.x - w2s(points[0]).x, raw.y - w2s(points[0]).y) < 50) { finalizeDrawing(); } else { points.push(s2w(raw)); draw(); } return; }
+        let hitType = null, hitIdx = -1, minDist = Infinity;
+        points.forEach((p, i) => { const d = Math.hypot(raw.x - w2s(p).x, raw.y - w2s(p).y); if (d < 45 && d < minDist) { minDist = d; hitType = 'vertex'; hitIdx = i; } });
+        if (minDist > 25) { for (let i = 0; i < points.length; i++) { const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]); const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2; const d = Math.hypot(raw.x - midX, raw.y - midY); if (d < 45 && d < minDist) { minDist = d; hitType = 'label'; hitIdx = i; } }
+        for (let i = 0; i < points.length; i++) { const d = distToSegment(raw, w2s(points[i]), w2s(points[(i+1)%points.length])); if (d < 35 && d < minDist) { minDist = d; hitType = 'edge'; hitIdx = i; } } }
+        if (hitType === 'vertex') { activeMode = 'angle'; selectedIdx = hitIdx; openModal(); } else if (hitType === 'edge' || hitType === 'label') { activeMode = 'edge'; selectedIdx = hitIdx; openModal(); } } }
 
-        function handleMove(e) {
-            if (!isInteractingWithCanvas || !isPanning) return;
-            const raw = getRawCoords(e); if (e.cancelable) e.preventDefault();
-            if (Math.hypot(raw.x - startRawPos.x, raw.y - startRawPos.y) > 5) hasMoved = true;
-            if (isClosed && hasMoved) { cameraX += raw.x - lastRawPos.x; cameraY += raw.y - lastRawPos.y; lastRawPos = raw; draw(); }
-        }
+        function finalizeDrawing() { saveState(); isClosed = true; let s = 0; const N = points.length; for(let i = 0; i < N; i++) s += points[i].x * points[(i+1)%N].y - points[(i+1)%N].x * points[i].y; globalIsCW = s > 0; globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x); rebuildGeometry(true); draw(); }
 
-        function handleEnd(e) {
-            if (!isInteractingWithCanvas) return;
-            isInteractingWithCanvas = false;
-            isPanning = false;
-            
-            if (!hasMoved) {
-                const raw = startRawPos;
-                if (!isClosed) { 
-                    saveState(); 
-                    if (points.length >= 3 && Math.hypot(raw.x - w2s(points[0]).x, raw.y - w2s(points[0]).y) < 50) { finalizeDrawing(); } 
-                    else { points.push(s2w(raw)); draw(); }
-                    return; 
-                }
-                
-                let hitType = null, hitIdx = -1, minDist = Infinity;
-                points.forEach((p, i) => { const d = Math.hypot(raw.x - w2s(p).x, raw.y - w2s(p).y); if (d < 45 && d < minDist) { minDist = d; hitType = 'vertex'; hitIdx = i; } });
-                if (minDist > 25) { 
-                    for (let i = 0; i < points.length; i++) { const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]); const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2; const d = Math.hypot(raw.x - midX, raw.y - midY); if (d < 45 && d < minDist) { minDist = d; hitType = 'label'; hitIdx = i; } }
-                    for (let i = 0; i < points.length; i++) { const d = distToSegment(raw, w2s(points[i]), w2s(points[(i+1)%points.length])); if (d < 35 && d < minDist) { minDist = d; hitType = 'edge'; hitIdx = i; } }
-                }
-                
-                if (hitType === 'vertex') { activeMode = 'angle'; selectedIdx = hitIdx; openModal(); } 
-                else if (hitType === 'edge' || hitType === 'label') { activeMode = 'edge'; selectedIdx = hitIdx; openModal(); }
-            }
-        }
-
-        function resize() { if (!canvas) return; const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; draw(); }
-        function switchTab(tab) { document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none'); document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active')); if (tab === 'draw') { document.getElementById('drawView').style.display = 'flex'; document.getElementById('tabDraw').classList.add('active'); resize(); } else { document.getElementById('historyView').style.display = 'block'; document.getElementById('tabHistory').classList.add('active'); renderHistory(); } }
-        function renderHistory() { const list = document.getElementById('historyList'); if (savedData.length === 0) { list.innerHTML = `<div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>`; return; } list.innerHTML = savedData.slice().reverse().map((data, idx) => { const actualIdx = savedData.length - 1 - idx; return `<div class="history-card"><input type="text" class="memo-input" placeholder="メモを入力..." value="${data.memo || ''}" onchange="updateMemo(${actualIdx}, this.value)"><div class="flex justify-between items-center mb-2 px-1"><span class="text-[#8E8E93] text-xs font-bold">${data.time}</span><span class="text-white font-black text-lg">${data.area} m²</span></div><img src="${data.img}" class="w-full rounded-xl border border-white/10 mb-3 bg-[#000]"><div class="flex gap-2"><button onclick="deleteHistory(${actualIdx})" class="flex-1 py-3 bg-[#2C2C2E] text-[#FF453A] rounded-xl font-bold text-sm">削除</button></div></div>`;}).join(''); }
-        function updateMemo(idx, val) { savedData[idx].memo = val; persistData(); showToast("メモを保存しました"); }
-        function deleteHistory(idx) { savedData.splice(idx, 1); persistData(); renderHistory(); showToast("削除しました"); }
-        
-        function finalizeDrawing() { 
-            saveState(); isClosed = true; 
-            let s = 0; const N = points.length; 
-            for(let i = 0; i < N; i++) s += points[i].x * points[(i+1)%N].y - points[(i+1)%N].x * points[i].y; 
-            globalIsCW = s > 0;
-            globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
-            rebuildGeometry(true); draw(); 
-        }
+        function updateModalDisplay() { const displayEl = document.getElementById('fakeInputCursor'); displayEl.innerText = currentInputValue || "0"; if (isFirstInput) { displayEl.classList.remove('bg-[#5E5CE6]'); displayEl.classList.add('text-[#5E5CE6]'); displayEl.classList.remove('text-white'); } else { displayEl.classList.remove('text-[#5E5CE6]'); displayEl.classList.add('text-white'); } }
 
         function openModal() {
             document.getElementById('quickAngle').classList.toggle('hidden', activeMode === 'edge'); 
             document.getElementById('modalTitle').innerText = activeMode === 'edge' ? "寸法の入力" : "角度の入力";
+            document.getElementById('modalUnit').innerText = activeMode === 'edge' ? "m" : "°";
             let val = activeMode === 'edge' ? manualLengths[selectedIdx] : fixedAngles[selectedIdx];
             if (!val && activeMode === 'edge') val = (Math.hypot(points[(selectedIdx+1)%points.length].x-points[selectedIdx].x, points[(selectedIdx+1)%points.length].y-points[selectedIdx].y)/ppx).toFixed(2);
             else if (!val && isClosed && activeMode === 'angle') val = Math.round(getActualAngle(selectedIdx)*10)/10;
             
             const edgeInfo = document.getElementById('edgeInfo');
+            let showEdgeInfo = false;
             if (activeMode === 'edge' && isClosed) {
-                edgeInfo.classList.remove('hidden'); const p1 = points[selectedIdx], p2 = points[(selectedIdx+1)%points.length], dx = p2.x-p1.x, dy = p2.y-p1.y, cos = Math.cos(-globalBaseAngle), sin = Math.sin(-globalBaseAngle), ldx = dx*cos-dy*sin, ldy = dx*sin+dy*cos;
-                let relDeg = Math.abs(Math.atan2(ldy, ldx)*180/Math.PI)%180; if (relDeg > 90) relDeg = 180-relDeg; document.getElementById('edgeAngle').innerText = relDeg.toFixed(1) + '°';
-                const currentL = val ? parseFloat(val) : 0;
-                if (relDeg > 89.5 || relDeg < 0.5) { document.getElementById('edgeSlopeH').innerText = "0.0"; document.getElementById('edgeTotalDrop').innerText = "0"; } 
-                else { if (relDeg <= 45) { const h = 100*Math.tan(relDeg*Math.PI/180); document.getElementById('edgeSlopeH').innerText = h.toFixed(1); document.getElementById('edgeTotalDrop').innerText = Math.round(currentL*Math.sin(relDeg*Math.PI/180)*1000); } else { const w = 100/Math.tan(relDeg*Math.PI/180); document.getElementById('edgeSlopeH').innerText = w.toFixed(1); document.getElementById('edgeTotalDrop').innerText = Math.round(currentL*Math.cos(relDeg*Math.PI/180)*1000); } }
-            } else { edgeInfo.classList.add('hidden'); }
-            
-            numericInput.value = val || ''; 
-            inputModal.classList.add('active'); 
-            
-            // iOS Safari対応：少し遅延させて確実にフォーカスと全選択を行う
-            setTimeout(() => {
-                numericInput.focus();
-                numericInput.select();
-                try { numericInput.setSelectionRange(0, 9999); } catch(e){}
-            }, 50);
+                const p1 = points[selectedIdx], p2 = points[(selectedIdx+1)%points.length], dx = p2.x-p1.x, dy = p2.y-p1.y, cos = Math.cos(-globalBaseAngle), sin = Math.sin(-globalBaseAngle), ldx = dx*cos-dy*sin, ldy = dx*sin+dy*cos;
+                let relDeg = Math.abs(Math.atan2(ldy, ldx)*180/Math.PI)%180; if (relDeg > 90) relDeg = 180-relDeg;
+                
+                if (relDeg >= 0.5 && relDeg <= 89.5) {
+                    showEdgeInfo = true;
+                    document.getElementById('edgeAngle').innerText = relDeg.toFixed(1) + '°';
+                    const currentL = parseFloat(val) || 0;
+                    if (relDeg <= 45) {
+                        const h = 100 * Math.tan(relDeg * Math.PI / 180);
+                        document.getElementById('edgeSlopeH').innerText = h.toFixed(1);
+                        document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.sin(relDeg * Math.PI / 180) * 1000);
+                    } else {
+                        const w = 100 / Math.tan(relDeg * Math.PI / 180);
+                        document.getElementById('edgeSlopeH').innerText = w.toFixed(1);
+                        document.getElementById('edgeTotalDrop').innerText = Math.round(currentL * Math.cos(relDeg * Math.PI / 180) * 1000);
+                    }
+                }
+            }
+            if (showEdgeInfo) edgeInfo.classList.remove('hidden'); else edgeInfo.classList.add('hidden');
+            currentInputValue = String(val || ''); isFirstInput = true; updateModalDisplay(); inputModal.classList.add('active'); 
         }
 
         window.onload = function() {
-            canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d');
-            areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal');
-            numericInput = document.getElementById('numericInput'); fitBtn = document.getElementById('fitBtn');
-            slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult');
-            exportBtn = document.getElementById('exportBtn');
-
-            document.getElementById('saveBtn').onclick = (e) => { 
-                e.stopPropagation(); saveState(); 
-                const val = parseFloat(numericInput.value); 
-                if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } 
-                else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } 
-                inputModal.classList.remove('active'); 
-                
-                rebuildGeometry(false);
-                draw(); 
+            canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d'); areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal'); fitBtn = document.getElementById('fitBtn'); slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult'); exportBtn = document.getElementById('exportBtn');
+            
+            // ★「勾配(mm)」の計算処理を追加
+            slopeInput.oninput = () => {
+                const val = parseFloat(slopeInput.value);
+                if (!isNaN(val)) {
+                    const deg = Math.atan(val / 100) * 180 / Math.PI;
+                    slopeResult.innerText = deg.toFixed(1) + '°';
+                } else {
+                    slopeResult.innerText = '0.0°';
+                }
             };
 
+            document.querySelectorAll('.numpad-btn').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const val = btn.getAttribute('data-val'); if (isFirstInput) { currentInputValue = val; isFirstInput = false; } else { if (val === '.' && currentInputValue.includes('.')) return; if (currentInputValue === '0' && val !== '.') currentInputValue = val; else currentInputValue += val; } updateModalDisplay(); }; });
+            document.getElementById('numpadBS').onclick = (e) => { e.stopPropagation(); if (isFirstInput) { currentInputValue = ""; isFirstInput = false; } else { currentInputValue = currentInputValue.slice(0, -1); } updateModalDisplay(); };
+            document.getElementById('saveBtn').onclick = (e) => { e.stopPropagation(); saveState(); const val = parseFloat(currentInputValue); if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } inputModal.classList.remove('active'); rebuildGeometry(false); draw(); };
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); draw(); };
             exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '' }); persistData(); showToast("保存しました"); };
-            document.getElementById('undoBtn').onclick = undo;
-            document.getElementById('fitBtn').onclick = () => { rebuildGeometry(true); draw(); };
+            document.getElementById('undoBtn').onclick = undo; document.getElementById('fitBtn').onclick = () => { rebuildGeometry(true); draw(); };
             document.getElementById('resetBtn').onclick = () => { saveState(); points = []; manualLengths = {}; fixedAngles = {}; isClosed = false; updateCount = 0; cameraX=0; cameraY=0; zoom=1; draw(); fitBtn.classList.add('hidden'); };
-            document.getElementById('setQuick90').onclick = () => { numericInput.value = 90; document.getElementById('saveBtn').click(); };
-            document.getElementById('setQuick270').onclick = () => { numericInput.value = 270; document.getElementById('saveBtn').click(); };
-            document.getElementById('setQuick45').onclick = () => { numericInput.value = 45; document.getElementById('saveBtn').click(); };
-            
-            document.getElementById('executeBtn').onclick = () => {
-                if (!isClosed) { showToast("図形を閉じてから実行してください"); return; }
-                saveState(); const N = points.length; 
-
-                let hasManual = false; 
-                for(let i = 0; i < N; i++) { 
-                    if(manualLengths[i] !== undefined) { 
-                        const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); 
-                        ppx = d / manualLengths[i]; 
-                        hasManual = true; break; 
-                    } 
-                }
-                if(!hasManual) { 
-                    const d = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y); 
-                    ppx = d / 10; 
-                }
-
-                for (let i = 0; i < N - 1; i++) { 
-                    if (manualLengths[i] === undefined) { 
-                        const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); 
-                        manualLengths[i] = Math.round((d / ppx) * 100) / 100; 
-                    } 
-                }
-
-                for (let i = 1; i < N - 1; i++) { 
-                    if (fixedAngles[i] === undefined) { 
-                        let actualD = getActualAngle(i);
-                        if (updateCount === 0) {
-                            if (Math.abs(actualD - 90) <= 25) fixedAngles[i] = 90;
-                            else if (Math.abs(actualD - 270) <= 25) fixedAngles[i] = 270;
-                            else fixedAngles[i] = Math.round(actualD*10)/10;
-                        } else {
-                            fixedAngles[i] = Math.round(actualD*10)/10; 
-                        }
-                    } 
-                }
-
-                updateCount++;
-                rebuildGeometry(true); draw(); showToast("作図を更新しました");
-            };
-
-            canvas.addEventListener('mousedown', handleStart);
-            window.addEventListener('mousemove', handleMove);
-            window.addEventListener('mouseup', handleEnd);
-            
-            canvas.addEventListener('touchstart', (e) => { 
-                if (e.touches.length === 2) { 
-                    isPanning = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
-                    initialZoom = zoom; const r = canvas.getBoundingClientRect(); initialPinchCenter = { x: (e.touches[0].clientX+e.touches[1].clientX)/2 - r.left, y: (e.touches[0].clientY+e.touches[1].clientY)/2 - r.top }; 
-                    if (e.cancelable) e.preventDefault(); return; 
-                } 
-                handleStart(e); 
-            }, {passive:false});
-            
-            window.addEventListener('touchmove', (e) => { 
-                if (isInteractingWithCanvas && e.touches.length === 2 && initialPinchDist) { 
-                    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), nz = Math.max(0.1, Math.min(10, initialZoom * (d / initialPinchDist))), r = nz / zoom; 
-                    cameraX = initialPinchCenter.x - (initialPinchCenter.x - cameraX) * r; cameraY = initialPinchCenter.y - (initialPinchCenter.y - cameraY) * r; zoom = nz; draw(); 
-                    if (e.cancelable) e.preventDefault(); return; 
-                } 
-                handleMove(e); 
-            }, {passive:false});
-            
-            window.addEventListener('touchend', handleEnd);
-            
-            window.addEventListener('resize', resize);
-            resize(); setTimeout(resize, 200);
+            document.getElementById('setQuick90').onclick = () => { currentInputValue = "90"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
+            document.getElementById('setQuick270').onclick = () => { currentInputValue = "270"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
+            document.getElementById('setQuick45').onclick = () => { currentInputValue = "45"; isFirstInput = false; updateModalDisplay(); document.getElementById('saveBtn').click(); };
+            document.getElementById('executeBtn').onclick = () => { if (!isClosed) { showToast("図形を閉じてから実行してください"); return; } saveState(); const N = points.length; let hasManual = false; for(let i = 0; i < N; i++) { if(manualLengths[i] !== undefined) { const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); ppx = d / manualLengths[i]; hasManual = true; break; } }
+            if(!hasManual) { const d = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y); ppx = d / 10; }
+            for (let i = 0; i < N - 1; i++) { if (manualLengths[i] === undefined) { const d = Math.hypot(points[(i+1)%N].x - points[i].x, points[(i+1)%N].y - points[i].y); manualLengths[i] = Math.round((d / ppx) * 100) / 100; } }
+            for (let i = 1; i < N - 1; i++) { if (fixedAngles[i] === undefined) { let actualD = getActualAngle(i); if (updateCount === 0) { if (Math.abs(actualD - 90) <= 25) fixedAngles[i] = 90; else if (Math.abs(actualD - 270) <= 25) fixedAngles[i] = 270; else fixedAngles[i] = Math.round(actualD*10)/10; } else { fixedAngles[i] = Math.round(actualD*10)/10; } } }
+            updateCount++; rebuildGeometry(true); draw(); showToast("作図を更新しました"); };
+            canvas.addEventListener('mousedown', handleStart); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleEnd);
+            canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { isPanning = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); initialZoom = zoom; const r = canvas.getBoundingClientRect(); initialPinchCenter = { x: (e.touches[0].clientX+e.touches[1].clientX)/2 - r.left, y: (e.touches[0].clientY+e.touches[1].clientY)/2 - r.top }; if (e.cancelable) e.preventDefault(); return; } handleStart(e); }, {passive:false});
+            window.addEventListener('touchmove', (e) => { if (isInteractingWithCanvas && e.touches.length === 2 && initialPinchDist) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), nz = Math.max(0.1, Math.min(10, initialZoom * (d / initialPinchDist))), r = nz / zoom; cameraX = initialPinchCenter.x - (initialPinchCenter.x - cameraX) * r; cameraY = initialPinchCenter.y - (initialPinchCenter.y - cameraY) * r; zoom = nz; draw(); if (e.cancelable) e.preventDefault(); return; } handleMove(e); }, {passive:false});
+            window.addEventListener('touchend', handleEnd); window.addEventListener('resize', resize); resize(); setTimeout(resize, 200);
         };
+
+        function switchTab(tab) { document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none'); document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active')); if (tab === 'draw') { document.getElementById('drawView').style.display = 'flex'; document.getElementById('tabDraw').classList.add('active'); resize(); } else { document.getElementById('historyView').style.display = 'block'; document.getElementById('tabHistory').classList.add('active'); renderHistory(); } }
+        function renderHistory() { const list = document.getElementById('historyList'); if (savedData.length === 0) { list.innerHTML = `<div class="text-center text-[#8E8E93] py-20 font-bold">まだ保存されたデータはありません</div>`; return; } list.innerHTML = savedData.slice().reverse().map((data, idx) => { const actualIdx = savedData.length - 1 - idx; return `<div class="history-card"><input type="text" class="memo-input" placeholder="メモを入力..." value="${data.memo || ''}" onchange="updateMemo(${actualIdx}, this.value)"><div class="flex justify-between items-center mb-2 px-1"><span class="text-[#8E8E93] text-xs font-bold">${data.time}</span><span class="text-white font-black text-lg">${data.area} m²</span></div><img src="${data.img}" class="w-full rounded-xl border border-white/10 mb-3 bg-[#000]"><div class="flex gap-2"><button onclick="deleteHistory(${actualIdx})" class="flex-1 py-3 bg-[#2C2C2E] text-[#FF453A] rounded-xl font-bold text-sm">削除</button></div></div>`; }).join(''); }
     </script>
 </body>
 </html>
