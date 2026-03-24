@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="面積計算">
+    <meta name="application-name" content="面積計算">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <title>面積計算アプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -186,7 +196,7 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <input type="text" id="slopeInput" placeholder="勾配(mm)" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black">
+                        <input type="text" id="slopeInput" placeholder="勾配(mm)" readonly inputmode="none" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black cursor-pointer">
                     </div>
                     <div class="flex items-center justify-center min-w-[65px] bg-white h-9 rounded-lg border border-black/5 shadow-sm px-1">
                         <span id="slopeResult" class="text-sm font-black text-black tabular-nums">0.0°</span>
@@ -442,17 +452,25 @@
         function finalizeDrawing() { saveState(); isClosed = true; globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x); let s = 0; for(let i = 0; i < points.length; i++) s += points[i].x * points[(i+1)%points.length].y - points[(i+1)%points.length].x * points[i].y; globalIsCW = s > 0; draw(); }
 
         function openModal() {
-            document.getElementById('quickAngle').classList.toggle('hidden', activeMode === 'edge'); 
-            document.getElementById('modalTitle').innerText = activeMode === 'edge' ? "寸法の入力" : "角度の入力";
+            const quickAngle = document.getElementById('quickAngle');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalUnit = document.getElementById('modalUnit');
+            quickAngle.classList.toggle('hidden', activeMode !== 'angle');
+            modalTitle.innerText = activeMode === 'edge' ? "寸法の入力" : (activeMode === 'angle' ? "角度の入力" : "勾配の入力");
+            modalUnit.innerText = activeMode === 'angle' ? '°' : (activeMode === 'slope' ? 'mm' : 'm');
             const getA = (idx) => {
                 const prev = points[(idx-1+points.length)%points.length], curr = points[idx], next = points[(idx+1)%points.length];
                 const aIn = Math.atan2(curr.y-prev.y, curr.x-prev.x), aOut = Math.atan2(next.y-curr.y, next.x-curr.x);
                 let turn = aOut - aIn; while(turn < -Math.PI) turn += Math.PI*2; while(turn > Math.PI) turn -= Math.PI*2;
                 let actualDeg = globalIsCW ? (180-turn*180/Math.PI) : (180+turn*180/Math.PI); while(actualDeg <= 0) actualDeg += 360; while(actualDeg > 360) actualDeg -= 360; return Math.round(actualDeg*10)/10;
             };
-            let val = activeMode === 'edge' ? manualLengths[selectedIdx] : fixedAngles[selectedIdx];
+            let val;
+            if (activeMode === 'edge') val = manualLengths[selectedIdx];
+            else if (activeMode === 'angle') val = fixedAngles[selectedIdx];
+            else if (activeMode === 'slope') val = slopeInput.value;
             if (!val && activeMode === 'edge') val = (Math.hypot(points[(selectedIdx+1)%points.length].x-points[selectedIdx].x, points[(selectedIdx+1)%points.length].y-points[selectedIdx].y)/ppx).toFixed(2);
             else if (!val && isClosed && activeMode === 'angle') val = getA(selectedIdx);
+            else if (!val && activeMode === 'slope') val = '';
             
             const edgeInfo = document.getElementById('edgeInfo'); let showEdgeInfo = false;
             if (activeMode === 'edge' && isClosed) {
@@ -472,9 +490,17 @@
         window.onload = function() {
             canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d'); areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal'); fitBtn = document.getElementById('fitBtn'); slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult'); exportBtn = document.getElementById('exportBtn'); gridBg = document.getElementById('gridBg'); pressProgress = document.getElementById('pressProgress');
             slopeInput.oninput = () => { const val = parseFloat(slopeInput.value); if (!isNaN(val)) { const deg = Math.atan(val / 100) * 180 / Math.PI; slopeResult.innerText = deg.toFixed(1) + '°'; } else { slopeResult.innerText = '0.0°'; } };
+            slopeInput.onclick = () => {
+                activeMode = 'slope';
+                selectedIdx = -1;
+                openModal();
+            };
+            slopeInput.addEventListener('focus', () => {
+                slopeInput.blur();
+            });
             document.querySelectorAll('.numpad-btn').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const val = btn.getAttribute('data-val'); if (isFirstInput) { currentInputValue = val; isFirstInput = false; } else { if (val === '.' && currentInputValue.includes('.')) return; if (currentInputValue === '0' && val !== '.') currentInputValue = val; else currentInputValue += val; } updateModalDisplay(); }; });
             document.getElementById('numpadBS').onclick = (e) => { e.stopPropagation(); if (isFirstInput) { currentInputValue = ""; isFirstInput = false; } else { currentInputValue = currentInputValue.slice(0, -1); } updateModalDisplay(); };
-            document.getElementById('saveBtn').onclick = (e) => { e.stopPropagation(); saveState(); const val = parseFloat(currentInputValue); if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } inputModal.classList.remove('active'); draw(); };
+            document.getElementById('saveBtn').onclick = (e) => { e.stopPropagation(); saveState(); const val = parseFloat(currentInputValue); if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } else if (activeMode === 'angle') { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } else if (activeMode === 'slope') { slopeInput.value = !isNaN(val) && val >= 0 ? String(val) : ''; slopeInput.oninput(); } inputModal.classList.remove('active'); draw(); };
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); draw(); };
             exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '', points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW, slopeValue: slopeInput.value, cameraX, cameraY, zoom }); persistData(); showToast("保存しました"); };
             document.getElementById('undoBtn').onclick = undo;
@@ -537,5 +563,23 @@
         function deleteHistory(idx) { if(confirm("このデータを削除してもよろしいですか？")) { savedData.splice(idx, 1); persistData(); renderHistory(); showToast("削除しました"); } }
         function updateModalDisplay() { const displayEl = document.getElementById('fakeInputCursor'); displayEl.innerText = currentInputValue || "0"; if (isFirstInput) { displayEl.classList.remove('bg-[#5E5CE6]'); displayEl.classList.add('text-[#5E5CE6]'); displayEl.classList.remove('text-white'); } else { displayEl.classList.remove('text-[#5E5CE6]'); displayEl.classList.add('text-white'); } }
     </script>
+
+    <script>
+        (function () {
+            const isStandalone =
+                window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true;
+            document.documentElement.classList.toggle('standalone', isStandalone);
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('./sw.js').catch(function (err) {
+                        console.warn('SW registration failed:', err);
+                    });
+                });
+            }
+        })();
+    </script>
+
 </body>
 </html>
